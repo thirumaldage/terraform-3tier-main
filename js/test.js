@@ -18,7 +18,7 @@ var obj = {
           ]
     }
 }
-
+consle.log(obj.player.age[0]
 let x = "";
 const myObj = {
   name: "John",
