@@ -30,7 +30,7 @@ stages:
              command: 'init'
              #workingDirectory: '$(System.DefaultWorkingDirectory)/terraform-3tier-main'
              commandOptions: '-force-copy'
-             backendServiceArm: 'Pay-As-You-Go (d97ead94-1620-40de-9ca6-19e93ad9f71f)'
+             backendServiceArm: 'Pay-As-You-Go (d97ead94-1620-40de-XXXX-19e93ad9f71f)'  #use yours
              backendAzureRmResourceGroupName: 'terraform-storage-rg'
              backendAzureRmStorageAccountName: 'atg1212'
              backendAzureRmContainerName: 'terra'
@@ -43,7 +43,7 @@ stages:
              provider: 'azurerm'
              command: 'plan'
              #workingDirectory: '$(System.DefaultWorkingDirectory)/terraform-3tier-main'
-             environmentServiceNameAzureRM: 'Pay-As-You-Go (d97ead94-1620-40de-9ca6-19e93ad9f71f)'
+             environmentServiceNameAzureRM: 'Pay-As-You-Go (d97ead94-1620-40de-XXXX-19e93ad9f71f)'
              backendAzureRmResourceGroupName: 'terraform-storage-rg'
              backendAzureRmStorageAccountName: 'atg1212'
              backendAzureRmContainerName: 'terra'
@@ -118,7 +118,7 @@ stages:
                    provider: 'azurerm'
                    command: 'apply'
                    #commandOptions: '-input=false -auto-approve -var-file="../vars/production/production.tfvars"'
-                   environmentServiceNameAzureRM: 'Pay-As-You-Go (d97ead94-1620-40de-9ca6-19e93ad9f71f)'
+                   environmentServiceNameAzureRM: 'Pay-As-You-Go (d97ead94-1620-40de-XXXX-19e93ad9f71f)'
 
 
         
