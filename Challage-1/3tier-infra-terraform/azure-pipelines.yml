@@ -1,0 +1,125 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger: none
+#- master
+
+pool:
+  name: "dtr"
+
+variables:
+   system.debug: true 
+
+stages:
+  - stage: terraform_init
+    jobs:
+      - job: terraform_init
+        continueOnError: false
+        steps:
+         - checkout: self
+           clean: true
+           fetchDepth: 5
+           lfs: true
+
+         - task: TerraformTaskV3@3
+           displayName: Terraform Init
+           inputs:
+             provider: 'azurerm'
+             command: 'init'
+             #workingDirectory: '$(System.DefaultWorkingDirectory)/terraform-3tier-main'
+             commandOptions: '-force-copy'
+             backendServiceArm: 'Pay-As-You-Go (d97ead94-1620-40de-9ca6-19e93ad9f71f)'
+             backendAzureRmResourceGroupName: 'terraform-storage-rg'
+             backendAzureRmStorageAccountName: 'atg1212'
+             backendAzureRmContainerName: 'terra'
+             backendAzureRmKey: 'terraform.tfsate'
+
+             
+         - task: TerraformTaskV3@3
+           displayName: Terraform Plan
+           inputs:
+             provider: 'azurerm'
+             command: 'plan'
+             #workingDirectory: '$(System.DefaultWorkingDirectory)/terraform-3tier-main'
+             environmentServiceNameAzureRM: 'Pay-As-You-Go (d97ead94-1620-40de-9ca6-19e93ad9f71f)'
+             backendAzureRmResourceGroupName: 'terraform-storage-rg'
+             backendAzureRmStorageAccountName: 'atg1212'
+             backendAzureRmContainerName: 'terra'
+             backendAzureRmKey: 'terraform.tfvars'
+             commandOptions: -var-file=terraform.tfvars -out=tfplan.txt
+             outputFormat: json
+
+
+         - task: ArchiveFiles@2
+           displayName: Archive Files
+           inputs:
+             rootFolderOrFile: '$(Build.BinariesDirectory)'
+             includeRootFolder: true
+             archiveType: 'zip'
+             archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+             replaceExistingArchive: true
+         - task: PublishBuildArtifacts@1
+           displayName: Publish artifact
+           inputs:
+             PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+             ArtifactName: '$(Build.BuildId)-tfplan'
+             publishLocation: 'Container'
+             
+         - task: DeleteFiles@1
+           displayName: Cleaning Files
+           inputs:
+             Contents: terraform.tfplan 
+             
+# Manual intervention is required to runt he next job
+      - job: WaitingForApproval
+        dependsOn: terraform_init
+        pool: server
+        timeoutInMinutes: 10000
+        steps: 
+         - task: ManualValidation@0
+           inputs:
+             notifyUsers: 'dthirumalrao@hotmail.com'
+             instructions: 'Please review it and approve'
+
+
+  - stage: terraform_apply
+    dependsOn: [terraform_init]
+    condition: succeeded('terraform_init')
+    #condition: failed('terraform_init')
+    #condition: always()
+    jobs:
+      - deployment: terraform_apply
+        environment: approval-gates
+        continueOnError: false
+        timeoutInMinutes: 120
+        strategy:
+         runOnce:
+           deploy:
+             steps:
+               -  checkout: none
+               - task: DownloadBuildArtifacts@0
+                 displayName: 'Download Plan Artifact'
+                 inputs:
+                  artifactName: '$(Build.BuildId)-tfplan'
+                  
+ 
+               - task: ExtractFiles@1
+                 displayName: 'Extract Terraform Plan Artifact' 
+                 inputs:
+                  archiveFilePatterns: '$(System.ArtifactsDirectory)/$(Build.BuildId)-tfplan/$(Build.BuildId).zip'
+                  destinationFolder: '$(System.DefaultWorkingDirectory)/'
+                  cleanDestinationFolder: false
+                  
+               - task: TerraformTaskV3@3
+                 displayName: 'Terraform Apply is running....'
+                 inputs:
+                   provider: 'azurerm'
+                   command: 'apply'
+                   #commandOptions: '-input=false -auto-approve -var-file="../vars/production/production.tfvars"'
+                   environmentServiceNameAzureRM: 'Pay-As-You-Go (d97ead94-1620-40de-9ca6-19e93ad9f71f)'
+
+
+        
+    
